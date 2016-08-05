@@ -46,6 +46,7 @@ function render() {
 
 function update() {
   player.update();
+  ball.update(player.paddle, computer.paddle);
 }
 
 // Object Constructor: Paddle
@@ -54,6 +55,7 @@ function Paddle(x, y, width, height) {
   this.y = y;
   this.width = width;
   this.height = height;
+  this.speed = 0;
 }
 
 Paddle.prototype.render = function() {
@@ -63,10 +65,11 @@ Paddle.prototype.render = function() {
 
 Paddle.prototype.move = function(speed) {
   this.x += speed;
+  this.speed = speed;
 
   if (this.x < 0) { // hit the left wall
     this.x = 0;
-  } else if (this.x + this.width > tableCanv.width) {
+  } else if (this.x + this.width > tableCanv.width) { // hit the right wall
     this.x = tableCanv.width - this.width;
   }
 };
@@ -91,23 +94,23 @@ Player.prototype.render = function() {
 };
 
 Player.prototype.update = function() {
-  var speed = 10;
+  var speed = 5;
   if (key[37]) {
     this.paddle.move(-speed);
   } else if (key[39]) {
     this.paddle.move(speed);
-  } else {
-    this.paddle.move(0);
   }
 };
 
 
 // Object Constructor: Ball
 function Ball() {
-  this.x = 250;
+  var rand = randomBall();
+
+  this.x = rand.x;
   this.y = 30;
-  this.x_speed = 0;
-  this.y_speed = 3;
+  this.x_speed = rand.speed * rand.direc;
+  this.y_speed = rand.speed + rand.basicSpeed;
   this.radius = 10;
 }
 
@@ -117,3 +120,63 @@ Ball.prototype.render = function() {
   ctx.fillStyle = '#ffff00';
   ctx.fill();
 };
+
+Ball.prototype.update = function(p1, p2) {
+  this.x += this.x_speed;
+  this.y += this.y_speed;
+
+  var left_x = this.x - this.radius;
+  var right_x = this.x + this.radius;
+  var top_y = this.y - this.radius;
+  var bottom_y = this.y + this.radius;
+
+  // if out of border, reset the ball
+  if (this.y < 0 || this.y > tableCanv.height) {
+    var rand = randomBall();
+
+    this.x = rand.x;
+    this.y = 30;
+    this.x_speed = rand.speed * rand.direc;
+    this.y_speed = rand.speed + rand.basicSpeed;
+  }
+
+  // hit the left/right wall
+  if (left_x < 0) {
+    this.x = this.radius;
+    this.x_speed = -this.x_speed;
+  } else if (right_x > tableCanv.width) {
+    this.x = tableCanv.width - this.radius;
+    this.x_speed = -this.x_speed;
+  }
+
+  if (this.y > tableCanv.height / 2) {
+    if (
+      bottom_y >= p1.y &&
+      right_x >= p1.x && // when hit point of paddle
+      left_x <= p1.x + p1.width // when hit point of paddle
+    ) {
+      this.x_speed += p1.speed / 2;
+      this.y_speed = -this.y_speed;
+    }
+  } else {
+    if (
+      top_y <= p2.y &&
+      right_x >= p2.x &&
+      left_x <= p2.x + p2.width
+    ) {
+      this.x_speed += p2.speed / 2;
+      this.y_speed = this.y_speed;
+    }
+  }
+};
+
+function randomBall() {
+  var obj = {};
+  var arr = [-1, 1];
+
+  obj.x = Math.floor(Math.random() * tableCanv.width);
+  obj.speed = Math.floor(Math.random() * 3);
+  obj.direc = arr[Math.floor(Math.random() * 2)];
+  obj.basicSpeed = 3;
+  return obj;
+}
