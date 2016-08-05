@@ -29,8 +29,8 @@ var animate = window.requestAnimationFrame ||
         function(callback) { window.setTimeout(callback, 1000/60) };
 
 function step() {
-  update();
   render();
+  update();
   animate(step);
 }
 
@@ -47,6 +47,7 @@ function render() {
 function update() {
   player.update();
   ball.update(player.paddle, computer.paddle);
+  computer.update(ball);
 }
 
 // Object Constructor: Paddle
@@ -81,6 +82,20 @@ function Computer() {
 
 Computer.prototype.render = function() {
   this.paddle.render();
+};
+
+Computer.prototype.update = function(ball) {
+  var diff = ball.x - (this.paddle.x + (this.paddle.width / 2));
+
+  // when diff is greater than 4
+  // set max speed to 4
+  if(diff < -4) {
+    diff = -4;
+  } else if(diff > 4) {
+    diff = 4;
+  }
+
+  this.paddle.move(diff);
 };
 
 
@@ -149,23 +164,25 @@ Ball.prototype.update = function(p1, p2) {
     this.x_speed = -this.x_speed;
   }
 
+  // ball is in player's range
   if (this.y > tableCanv.height / 2) {
     if (
       bottom_y >= p1.y &&
-      right_x >= p1.x && // when hit point of paddle
-      left_x <= p1.x + p1.width // when hit point of paddle
+      right_x >= p1.x && // hit point of paddle
+      left_x <= p1.x + p1.width // hit point of paddle
     ) {
       this.x_speed += p1.speed / 2;
       this.y_speed = -this.y_speed;
     }
-  } else {
+  } else {  // ball is in computer's range
     if (
-      top_y <= p2.y &&
-      right_x >= p2.x &&
-      left_x <= p2.x + p2.width
+      top_y <= p2.y + p2.height &&
+      right_x >= p2.x && // hit point of paddle
+      left_x <= p2.x + p2.width // hit point of paddle
     ) {
+      // console.log(p2.speed);
       this.x_speed += p2.speed / 2;
-      this.y_speed = this.y_speed;
+      this.y_speed = -this.y_speed;
     }
   }
 };
@@ -177,6 +194,6 @@ function randomBall() {
   obj.x = Math.floor(Math.random() * tableCanv.width);
   obj.speed = Math.floor(Math.random() * 3);
   obj.direc = arr[Math.floor(Math.random() * 2)];
-  obj.basicSpeed = 3;
+  obj.basicSpeed = 4;
   return obj;
 }
