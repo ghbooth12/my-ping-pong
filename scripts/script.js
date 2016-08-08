@@ -18,11 +18,13 @@ tableCanv.render = function() {
   ctx.lineTo(this.width, this.height/2);
   ctx.strokeStyle = '#eee';
   ctx.stroke();
+};
 
-  // draw score
+tableCanv.update = function() {
   ctx.beginPath();
   ctx.font = 'bold 30px sans-serif';
   ctx.fillStyle = '#eee';
+  ctx.textAlign = 'center';
 
   var computerScore = computer.paddle.score.toString();
   var playerScore = player.paddle.score.toString();
@@ -45,6 +47,7 @@ window.addEventListener('keyup', function(e) {
   delete key[e.keyCode];
 });
 
+var gameOver = false;
 var animate = window.requestAnimationFrame ||
         window.webkitRequestAnimationFrame ||
         window.mozRequestAnimationFrame    ||
@@ -52,14 +55,10 @@ var animate = window.requestAnimationFrame ||
         window.msRequestAnimationFrame     ||
         function(callback) { window.setTimeout(callback, 1000/60) };
 
-var stopAnimate = window.cancelAnimationFrame ||
-            window.webkitCancelAnimationFrame ||
-            window.mozCancelAnimationFrame    ||
-            window.oCancelAnimationFrame      ||
-            window.msCancelAnimationFrame     ||
-            clearTimeout;
-
 function step() {
+  if (gameOver) {
+    return;
+  }
   render();
   update();
   animate(step);
@@ -76,6 +75,7 @@ function update() {
   player.update();
   ball.update(player.paddle, computer.paddle);
   computer.update(ball);
+  tableCanv.update();
 }
 
 // Object Constructor: Paddle
@@ -234,27 +234,40 @@ function randomBall() {
   var arr = [-1, 1];
 
   obj.x = Math.floor(Math.random() * tableCanv.width);
-  obj.speed = Math.floor(Math.random() * 2);
+  obj.speed = Math.floor(Math.random() * 2) + 1;
   obj.direc = arr[Math.floor(Math.random() * 2)];
-  obj.basicSpeed = 6;
+  obj.basicSpeed = 5;
   return obj;
 }
 
 function endGame() {
-  if (computer.paddle.score === 10 || player.paddle.score === 10) {
-    stopAnimate();
-    ctx.beginPath(); //
-    ctx.fillStyle = '#eee'; //
-    ctx.textAlign = 'center'; //
-    ctx.textBaseline = 'middle'; //
+  var computerWin = computer.paddle.score === 11;
+  var playerWin = player.paddle.score === 11;
+
+  if (computerWin || playerWin) {
+    ctx.beginPath();
+    ctx.textAlign = 'center';
     var w = tableCanv.width / 2;
     var h = tableCanv.height / 2;
-    ctx.fillText('Game over', w, h);
+    ctx.fillText('Game over', w, h - 10);
 
-    if (computer.paddle.score === 10) {
-      ctx.fillText('Computer Wins!', w, h + 20);
-    } else if (player.paddle.score === 10) {
-      ctx.fillText('You Win!', w, h + 20);
+    if (computerWin) {
+      ctx.fillText('Computer Wins!', w, h + 30);
+    } else if (playerWin) {
+      ctx.fillText('You Win!', w, h + 30);
     }
+
+    ctx.beginPath();
+    ctx.font = '20px sans-serif';
+    ctx.fillStyle = '#eee';
+    ctx.fillText('Press enter to restart a game.', w, h + 70);
+
+    gameOver = true;
+
+    window.addEventListener('keydown', function(e) {
+      if (e.keyCode === 13) {
+        location.reload();
+      }
+    });
   }
 }
