@@ -7,6 +7,30 @@ var ctx = tableCanv.getContext('2d');
 tableCanv.width = tableCanv.getAttribute('width');
 tableCanv.height = tableCanv.getAttribute('height');
 
+tableCanv.render = function() {
+  // draw table
+  ctx.fillStyle = '#8fc5f1';
+  ctx.fillRect(0, 0, this.width, this.height);
+
+  // draw line
+  ctx.beginPath();
+  ctx.moveTo(0, this.height/2);
+  ctx.lineTo(this.width, this.height/2);
+  ctx.strokeStyle = '#eee';
+  ctx.stroke();
+
+  // draw score
+  ctx.beginPath();
+  ctx.font = 'bold 30px sans-serif';
+  ctx.fillStyle = '#eee';
+
+  var computerScore = computer.paddle.score.toString();
+  var playerScore = player.paddle.score.toString();
+
+  ctx.fillText(computerScore, this.width - 55, this.height / 2 - 25);
+  ctx.fillText(playerScore, this.width - 55, this.height / 2 + 45);
+};
+
 // Build objects
 var computer = new Computer();
 var player = new Player();
@@ -28,6 +52,13 @@ var animate = window.requestAnimationFrame ||
         window.msRequestAnimationFrame     ||
         function(callback) { window.setTimeout(callback, 1000/60) };
 
+var stopAnimate = window.cancelAnimationFrame ||
+            window.webkitCancelAnimationFrame ||
+            window.mozCancelAnimationFrame    ||
+            window.oCancelAnimationFrame      ||
+            window.msCancelAnimationFrame     ||
+            clearTimeout;
+
 function step() {
   render();
   update();
@@ -35,10 +66,7 @@ function step() {
 }
 
 function render() {
-  // Render Table
-  ctx.fillStyle = '#8fc5f1';
-  ctx.fillRect(0, 0, tableCanv.width, tableCanv.height);
-
+  tableCanv.render();
   computer.render();
   player.render();
   ball.render();
@@ -57,6 +85,7 @@ function Paddle(x, y, width, height) {
   this.width = width;
   this.height = height;
   this.speed = 0;
+  this.score = 0;
 }
 
 Paddle.prototype.render = function() {
@@ -88,11 +117,11 @@ Computer.prototype.update = function(ball) {
   var diff = ball.x - (this.paddle.x + (this.paddle.width / 2));
 
   // when diff is greater than 4
-  // set max speed to 4
-  if(diff < -4) {
-    diff = -4;
+  // set max speed to 5
+  if(diff < -4) { // if paddle is in the right side of the ball
+    diff = -5; // move paddle to the left to be closer to the ball
   } else if(diff > 4) {
-    diff = 4;
+    diff = 5;
   }
 
   this.paddle.move(diff);
@@ -144,11 +173,23 @@ Ball.prototype.update = function(p1, p2) {
   var right_x = this.x + this.radius;
   var top_y = this.y - this.radius;
   var bottom_y = this.y + this.radius;
+  var rand = randomBall();
 
   // if out of border, reset the ball
-  if (this.y < 0 || this.y > tableCanv.height) {
-    var rand = randomBall();
+  if (this.y < 0) {
+    player.paddle.score += 1; // player gains one point
+    endGame();
 
+    // player serves a ball
+    this.x = rand.x;
+    this.y = tableCanv.height - 30;
+    this.x_speed = rand.speed * rand.direc;
+    this.y_speed = (rand.speed + rand.basicSpeed) * -1;
+  } else if (this.y > tableCanv.height) {
+    computer.paddle.score += 1; // computer gains one point
+    endGame();
+
+    // computer serves a ball
     this.x = rand.x;
     this.y = 30;
     this.x_speed = rand.speed * rand.direc;
@@ -167,6 +208,7 @@ Ball.prototype.update = function(p1, p2) {
   // ball is in player's range
   if (this.y > tableCanv.height / 2) {
     if (
+      top_y <= p1.y + p1.height &&
       bottom_y >= p1.y &&
       right_x >= p1.x && // hit point of paddle
       left_x <= p1.x + p1.width // hit point of paddle
@@ -177,10 +219,10 @@ Ball.prototype.update = function(p1, p2) {
   } else {  // ball is in computer's range
     if (
       top_y <= p2.y + p2.height &&
+      bottom_y >= p2.y &&
       right_x >= p2.x && // hit point of paddle
       left_x <= p2.x + p2.width // hit point of paddle
     ) {
-      // console.log(p2.speed);
       this.x_speed += p2.speed / 2;
       this.y_speed = -this.y_speed;
     }
@@ -192,8 +234,27 @@ function randomBall() {
   var arr = [-1, 1];
 
   obj.x = Math.floor(Math.random() * tableCanv.width);
-  obj.speed = Math.floor(Math.random() * 3);
+  obj.speed = Math.floor(Math.random() * 2);
   obj.direc = arr[Math.floor(Math.random() * 2)];
-  obj.basicSpeed = 4;
+  obj.basicSpeed = 6;
   return obj;
+}
+
+function endGame() {
+  if (computer.paddle.score === 10 || player.paddle.score === 10) {
+    stopAnimate();
+    ctx.beginPath(); //
+    ctx.fillStyle = '#eee'; //
+    ctx.textAlign = 'center'; //
+    ctx.textBaseline = 'middle'; //
+    var w = tableCanv.width / 2;
+    var h = tableCanv.height / 2;
+    ctx.fillText('Game over', w, h);
+
+    if (computer.paddle.score === 10) {
+      ctx.fillText('Computer Wins!', w, h + 20);
+    } else if (player.paddle.score === 10) {
+      ctx.fillText('You Win!', w, h + 20);
+    }
+  }
 }
