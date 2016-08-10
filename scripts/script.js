@@ -176,7 +176,7 @@ Ball.prototype.update = function(p1, p2) {
   var rand = randomBall();
 
   // if out of border, reset the ball
-  if (this.y < 0) {
+  if (top_y < 0) {
     player.paddle.score += 1; // player gains one point
     endGame();
 
@@ -185,7 +185,7 @@ Ball.prototype.update = function(p1, p2) {
     this.y = tableCanv.height - 30;
     this.x_speed = rand.speed * rand.direc;
     this.y_speed = (rand.speed + rand.basicSpeed) * -1;
-  } else if (this.y > tableCanv.height) {
+  } else if (bottom_y > tableCanv.height) {
     computer.paddle.score += 1; // computer gains one point
     endGame();
 
@@ -205,27 +205,26 @@ Ball.prototype.update = function(p1, p2) {
     this.x_speed = -this.x_speed;
   }
 
-  // ball is in player's range
-  if (this.y > tableCanv.height / 2) {
-    if (
-      top_y <= p1.y + p1.height &&
-      bottom_y >= p1.y &&
-      right_x >= p1.x && // hit point of paddle
-      left_x <= p1.x + p1.width // hit point of paddle
-    ) {
-      this.x_speed += p1.speed / 2;
-      this.y_speed = -this.y_speed;
-    }
-  } else {  // ball is in computer's range
-    if (
-      top_y <= p2.y + p2.height &&
-      bottom_y >= p2.y &&
-      right_x >= p2.x && // hit point of paddle
-      left_x <= p2.x + p2.width // hit point of paddle
-    ) {
-      this.x_speed += p2.speed / 2;
-      this.y_speed = -this.y_speed;
-    }
+  if ( // player hits the ball
+    top_y < p1.y + p1.height &&
+    bottom_y > p1.y &&
+    right_x > p1.x &&
+    left_x < p1.x + p1.width &&
+    this.y <= p1.y
+  ) {
+    this.x_speed += p1.speed / 2;
+    this.y_speed = -this.y_speed;
+  }
+
+  if ( // computer hits the ball
+    top_y < p2.y + p2.height &&
+    bottom_y > p2.y &&
+    right_x > p2.x &&
+    left_x < p2.x + p2.width &&
+    this.y >= p2.y + p2.height
+  ) {
+    this.x_speed += p2.speed / 2;
+    this.y_speed = -this.y_speed;
   }
 };
 
